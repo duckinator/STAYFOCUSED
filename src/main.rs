@@ -115,7 +115,7 @@ impl MainApp {
                 let time_str = self.tasks[current].elapsed_time_str();
                 ui.label(time_str);
 
-                if ui.button("Next").clicked() {
+                if ui.button("Next").clicked() && self.tasks.len() > 1 {
                     let mut indexes: Vec<_> = (0..self.tasks.len()).collect();
                     let pos = indexes.iter().position(|v| *v == self.current_task).unwrap();
                     indexes.remove(pos);
