@@ -1,5 +1,6 @@
 use eframe::egui;
-use rand::{Rng, self};
+use rand::seq::SliceRandom;
+use rand;
 use std::time::{Duration, Instant};
 
 fn main() -> eframe::Result {
@@ -115,7 +116,10 @@ impl MainApp {
                 ui.label(time_str);
 
                 if ui.button("Next").clicked() {
-                    self.current_task = rand::thread_rng().gen_range(0..self.tasks.len());
+                    let mut indexes: Vec<_> = (0..self.tasks.len()).collect();
+                    let pos = indexes.iter().position(|v| *v == self.current_task).unwrap();
+                    indexes.remove(pos);
+                    self.current_task = *indexes.choose(&mut rand::thread_rng()).unwrap();
                 }
 
                 if ui.button("Tasks").clicked() {
