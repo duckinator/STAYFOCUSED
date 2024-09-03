@@ -1,4 +1,5 @@
 use eframe::egui;
+use rand::{Rng, self};
 use std::time::{Duration, Instant};
 
 fn main() -> eframe::Result {
@@ -74,7 +75,7 @@ impl Default for View {
 struct MainApp {
     view: View,
     tasks: Vec<Task>,
-    current_task: Option<usize>,
+    current_task: usize,
 }
 
 impl MainApp {
@@ -93,28 +94,28 @@ impl MainApp {
     fn update_active_task(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::Grid::new("active-task").show(ui, |ui| {
-                let task = &mut self.tasks[self.current_task.unwrap()];
+                let current = self.current_task;
 
-                task.tick();
+                self.tasks[current].tick();
 
                 // TODO: Clock?
-                ui.heading(&task.name);
+                ui.heading(&self.tasks[current].name);
                 ui.end_row();
 
-                ui.label(&task.description);
+                ui.label(&self.tasks[current].description);
                 ui.end_row();
 
-                if task.start_instant.is_some() {
-                    if ui.button("Pause").clicked() { task.stop(); }
+                if self.tasks[current].start_instant.is_some() {
+                    if ui.button("Pause").clicked() { self.tasks[current].stop(); }
                 } else {
-                    if ui.button("Start").clicked() { task.start(); }
+                    if ui.button("Start").clicked() { self.tasks[current].start(); }
                 }
 
-                let time_str = task.elapsed_time_str();
+                let time_str = self.tasks[current].elapsed_time_str();
                 ui.label(time_str);
 
                 if ui.button("Next").clicked() {
-                    // TODO: Prompt to select a task.
+                    self.current_task = rand::thread_rng().gen_range(0..self.tasks.len());
                 }
 
                 if ui.button("Tasks").clicked() {
@@ -124,7 +125,7 @@ impl MainApp {
 
                 // If task is running, request a redraw every half-second
                 // to update the timer.
-                if task.start_instant.is_some() {
+                if self.tasks[current].start_instant.is_some() {
                     ctx.request_repaint_after(Duration::new(0, 500));
                 }
             });
@@ -184,16 +185,6 @@ impl MainApp {
 impl eframe::App for MainApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         if self.tasks.len() == 0 {
-            self.tasks.push(Task {
-                start_instant: None,
-                elapsed_time: Duration::new(0, 0),
-                name: String::from("task name"),
-                description: String::from("description"),
-            })
-        }
-        self.current_task = Some(0);
-
-        if self.current_task.is_none() {
             self.view = View::TaskList;
         }
 
