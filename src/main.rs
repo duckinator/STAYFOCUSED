@@ -165,6 +165,9 @@ impl MainApp {
                 }
                 if let Some(idx) = deferred_removal {
                     self.tasks.remove(idx);
+                    if self.current_task > idx {
+                        self.current_task -= 1;
+                    }
                 }
 
 
