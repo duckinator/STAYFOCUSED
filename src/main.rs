@@ -10,12 +10,13 @@ fn main() -> eframe::Result {
 }
 
 // [ pri ] [ duration ] [ task ] [ Edit ] [ Delete ]
-#[derive(Default)]
+#[derive(Default, serde::Deserialize, serde::Serialize)]
 struct Task {
     //priority: Priority,
     elapsed_time: Duration,
     name: String,
     description: String,
+    #[serde(skip)]
     start_instant: Option<Instant>,
 }
 
@@ -63,6 +64,7 @@ impl Task {
     }
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
 enum View {
     ActiveTask,
     TaskList,
@@ -72,20 +74,33 @@ impl Default for View {
     fn default() -> Self { View::ActiveTask }
 }
 
-#[derive(Default)]
-struct MainApp {
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+struct State {
     view: View,
     tasks: Vec<Task>,
     current_task: usize,
 }
 
+#[derive(Default)]
+struct MainApp {
+    state: State,
+}
+
 impl MainApp {
-    fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Customize egui here with cc.egui_ctx.set_fonts and cc.egui_ctx.set_visuals.
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
-        Self::default()
+        let mut slf = Self::default();
+
+        if let Some(storage) = cc.storage {
+            if let Some(state) = eframe::get_value(storage, eframe::APP_KEY) {
+                slf.state = state;
+            }
+        }
+
+        slf
     }
 
     // [ linear clock                             ]
@@ -95,41 +110,41 @@ impl MainApp {
     fn update_active_task(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::Grid::new("active-task").show(ui, |ui| {
-                let current = self.current_task;
+                let current = self.state.current_task;
 
-                self.tasks[current].tick();
+                self.state.tasks[current].tick();
 
                 // TODO: Clock?
-                ui.heading(&self.tasks[current].name);
+                ui.heading(&self.state.tasks[current].name);
                 ui.end_row();
 
-                ui.label(&self.tasks[current].description);
+                ui.label(&self.state.tasks[current].description);
                 ui.end_row();
 
-                if self.tasks[current].start_instant.is_some() {
-                    if ui.button("Pause").clicked() { self.tasks[current].stop(); }
+                if self.state.tasks[current].start_instant.is_some() {
+                    if ui.button("Pause").clicked() { self.state.tasks[current].stop(); }
                 } else {
-                    if ui.button("Start").clicked() { self.tasks[current].start(); }
+                    if ui.button("Start").clicked() { self.state.tasks[current].start(); }
                 }
 
-                let time_str = self.tasks[current].elapsed_time_str();
+                let time_str = self.state.tasks[current].elapsed_time_str();
                 ui.label(time_str);
 
-                if ui.button("Next").clicked() && self.tasks.len() > 1 {
-                    let mut indexes: Vec<_> = (0..self.tasks.len()).collect();
-                    let pos = indexes.iter().position(|v| *v == self.current_task).unwrap();
+                if ui.button("Next").clicked() && self.state.tasks.len() > 1 {
+                    let mut indexes: Vec<_> = (0..self.state.tasks.len()).collect();
+                    let pos = indexes.iter().position(|v| *v == self.state.current_task).unwrap();
                     indexes.remove(pos);
-                    self.current_task = *indexes.choose(&mut rand::thread_rng()).unwrap();
+                    self.state.current_task = *indexes.choose(&mut rand::thread_rng()).unwrap();
                 }
 
                 if ui.button("Tasks").clicked() {
-                    self.view = View::TaskList;
+                    self.state.view = View::TaskList;
                 }
                 ui.end_row();
 
                 // If task is running, request a redraw every half-second
                 // to update the timer.
-                if self.tasks[current].start_instant.is_some() {
+                if self.state.tasks[current].start_instant.is_some() {
                     ctx.request_repaint_after(Duration::new(0, 500));
                 }
             });
@@ -151,8 +166,8 @@ impl MainApp {
                 ui.end_row();
 
                 let mut deferred_removal: Option<usize> = None;
-                for i in 0..self.tasks.len() {
-                    let task = &mut self.tasks[i];
+                for i in 0..self.state.tasks.len() {
+                    let task = &mut self.state.tasks[i];
                     ui.text_edit_singleline(&mut task.name);
                     ui.text_edit_singleline(&mut task.description);
 
@@ -164,9 +179,9 @@ impl MainApp {
                     ui.end_row();
                 }
                 if let Some(idx) = deferred_removal {
-                    self.tasks.remove(idx);
-                    if self.current_task > idx {
-                        self.current_task -= 1;
+                    self.state.tasks.remove(idx);
+                    if self.state.current_task > idx {
+                        self.state.current_task -= 1;
                     }
                 }
 
@@ -178,10 +193,10 @@ impl MainApp {
                 ui.label("");
 
                 if ui.button("Add").clicked() {
-                    self.tasks.push(Task::default());
+                    self.state.tasks.push(Task::default());
                 }
                 if ui.button("Done").clicked() {
-                    self.view = View::ActiveTask;
+                    self.state.view = View::ActiveTask;
                 }
                 ui.end_row();
             });
@@ -191,13 +206,17 @@ impl MainApp {
 
 impl eframe::App for MainApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        if self.tasks.len() == 0 {
-            self.view = View::TaskList;
+        if self.state.tasks.len() == 0 {
+            self.state.view = View::TaskList;
         }
 
-        match &self.view {
+        match &self.state.view {
             View::ActiveTask   => self.update_active_task(ctx, frame),
             View::TaskList     => self.update_task_list(ctx, frame),
         }
+    }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, &self.state);
     }
 }
