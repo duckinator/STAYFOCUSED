@@ -1,7 +1,6 @@
 use eframe::egui;
 use egui_extras::{TableBuilder, Column};
 use rand::seq::SliceRandom;
-use rand;
 use std::time::Duration;
 mod task;
 use task::Task;
