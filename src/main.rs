@@ -2,66 +2,14 @@ use eframe::egui;
 use egui_extras::{TableBuilder, Column};
 use rand::seq::SliceRandom;
 use rand;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+mod task;
+use task::Task;
 
 fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native("STAYFOCUSED", native_options,
         Box::new(|cc| Ok(Box::new(MainApp::new(cc)))))
-}
-
-// [ pri ] [ duration ] [ task ] [ Edit ] [ Delete ]
-#[derive(Default, serde::Deserialize, serde::Serialize)]
-struct Task {
-    //priority: Priority,
-    elapsed_time: Duration,
-    description: String,
-    #[serde(skip)]
-    start_instant: Option<Instant>,
-}
-
-impl Task {
-    fn start(&mut self) {
-        if self.start_instant.is_none() {
-            self.start_instant = Some(Instant::now());
-        }
-    }
-
-    fn stop(&mut self) {
-        if self.start_instant.is_some() {
-            self.tick();
-            self.start_instant = None;
-        }
-    }
-
-    fn tick(&mut self) {
-        if self.start_instant.is_none() {
-            return;
-        }
-
-        let now = Instant::now();
-        let difference = now.duration_since(self.start_instant.unwrap());
-
-        // Mostly just so it's not updating every fucking frame.
-        if difference.as_secs() < 1 {
-            return;
-        }
-
-        self.elapsed_time += difference;
-
-        self.start_instant = Some(now);
-    }
-
-    fn elapsed_time_str(&self) -> String {
-        let time = self.elapsed_time.as_secs();
-        let mins = time / 60;
-        let secs = time % 60;
-
-        let hours = mins / 60;
-        let mins = mins % 60;
-
-        format!("{:02}:{:02}:{:02}", hours, mins, secs)
-    }
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
