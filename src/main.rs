@@ -5,6 +5,9 @@ use std::time::Duration;
 mod task;
 use task::Task;
 
+mod task_list;
+use task_list::TaskList;
+
 fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native("STAYFOCUSED", native_options,
@@ -18,16 +21,10 @@ enum View {
     TaskList,
 }
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
-struct State {
-    view: View,
-    tasks: Vec<Task>,
-    current_task: usize,
-}
-
 #[derive(Default)]
 struct MainApp {
-    state: State,
+    view: View,
+    state: TaskList,
 }
 
 impl MainApp {
@@ -120,7 +117,7 @@ impl MainApp {
 
                         row.col(|ui| {
                             if self.add_sized_btn(ui, "Tasks").clicked() {
-                                self.state.view = View::TaskList;
+                                self.view = View::TaskList;
                             }
                         });
                     });
@@ -177,7 +174,7 @@ impl MainApp {
 
                         row.col(|ui| {
                             if self.add_sized_btn(ui, "Done").clicked() {
-                                self.state.view = View::ActiveTask;
+                                self.view = View::ActiveTask;
                             }
                         });
                     });
@@ -230,10 +227,10 @@ impl MainApp {
 impl eframe::App for MainApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         if self.state.tasks.is_empty() {
-            self.state.view = View::TaskList;
+            self.view = View::TaskList;
         }
 
-        match &self.state.view {
+        match &self.view {
             View::ActiveTask   => self.update_active_task(ctx, frame),
             View::TaskList     => self.update_task_list(ctx, frame),
         }
