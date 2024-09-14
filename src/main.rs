@@ -12,14 +12,11 @@ fn main() -> eframe::Result {
         Box::new(|cc| Ok(Box::new(MainApp::new(cc)))))
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Default, serde::Deserialize, serde::Serialize)]
 enum View {
+    #[default]
     ActiveTask,
     TaskList,
-}
-
-impl Default for View {
-    fn default() -> Self { View::ActiveTask }
 }
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
