@@ -233,7 +233,7 @@ impl MainApp {
 
 impl eframe::App for MainApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        if self.state.tasks.len() == 0 {
+        if self.state.tasks.is_empty() {
             self.state.view = View::TaskList;
         }
 
