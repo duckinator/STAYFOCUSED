@@ -1,4 +1,5 @@
 use eframe::egui;
+use egui_extras::{TableBuilder, Column};
 use rand::seq::SliceRandom;
 use rand;
 use std::time::{Duration, Instant};
@@ -14,7 +15,6 @@ fn main() -> eframe::Result {
 struct Task {
     //priority: Priority,
     elapsed_time: Duration,
-    name: String,
     description: String,
     #[serde(skip)]
     start_instant: Option<Instant>,
@@ -92,6 +92,30 @@ impl MainApp {
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
+
+        use egui::FontFamily::Proportional;
+        use egui::FontId;
+        use egui::TextStyle::*;
+
+        let mut style = (*cc.egui_ctx.style()).clone();
+
+        style.text_styles = [
+            (Heading, FontId::new(20.0, Proportional)),
+            (Name("Heading2".into()), FontId::new(20.0, Proportional)),
+            (Name("Context".into()), FontId::new(20.0, Proportional)),
+            (Body, FontId::new(20.0, Proportional)),
+            (Monospace, FontId::new(14.0, Proportional)),
+            (Button, FontId::new(14.0, Proportional)),
+            (Small, FontId::new(10.0, Proportional)),
+        ].into();
+
+        //style.spacing.item_spacing = egui::vec2(20.0, 20.0);
+        //style.spacing.button_padding = egui::vec2(10.0, 10.0);
+        style.spacing.interact_size = egui::vec2(30.0, 30.0);
+
+        cc.egui_ctx.set_style(style);
+
+
         let mut slf = Self::default();
 
         if let Some(storage) = cc.storage {
@@ -103,52 +127,85 @@ impl MainApp {
         slf
     }
 
+    fn add_sized_btn(&mut self, ui: &mut egui::Ui, name: &str) -> egui::Response {
+        let button_size = [100.0, 30.0];
+        ui.add_sized(button_size, egui::Button::new(name))
+    }
+
     // [ linear clock                             ]
     // [ current task                             ]
     // | description                              |
     // [Pause][wrap up indicator] [ Next ] [ List ]
     fn update_active_task(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Grid::new("active-task").show(ui, |ui| {
-                let current = self.state.current_task;
+        let current = self.state.current_task;
+        let interact_size = ctx.style().spacing.interact_size;
 
-                self.state.tasks[current].tick();
+        egui::TopBottomPanel::bottom("active_task_bottom").show(ctx, |ui| {
+            TableBuilder::new(ui)
+                .column(Column::exact(100.0))
+                .column(Column::remainder())
+                .column(Column::exact(100.0))
+                .column(Column::exact(100.0))
+                .body(|mut body| {
+                    body.row(interact_size.y, |mut row| {
+                        row.col(|ui| {
+                            if self.state.tasks[current].start_instant.is_some() {
+                                if self.add_sized_btn(ui, "Pause").clicked() {
+                                    self.state.tasks[current].stop();
+                                }
+                            } else {
+                                if self.add_sized_btn(ui, "Start").clicked() {
+                                    self.state.tasks[current].start();
+                                }
+                            }
+                        });
 
-                // TODO: Clock?
-                ui.heading(&self.state.tasks[current].name);
-                ui.end_row();
+                        row.col(|ui| {
+                            let time_str = self.state.tasks[current].elapsed_time_str();
+                            ui.label(time_str);
+                        });
 
-                ui.label(&self.state.tasks[current].description);
-                ui.end_row();
+                        row.col(|ui| {
+                            if self.add_sized_btn(ui, "Next").clicked() && self.state.tasks.len() > 1 {
+                                let mut indexes: Vec<_> = (0..self.state.tasks.len()).collect();
+                                let pos = indexes.iter().position(|v| *v == self.state.current_task).unwrap();
+                                indexes.remove(pos);
+                                self.state.current_task = *indexes.choose(&mut rand::thread_rng()).unwrap();
+                            }
+                        });
 
-                if self.state.tasks[current].start_instant.is_some() {
-                    if ui.button("Pause").clicked() { self.state.tasks[current].stop(); }
-                } else {
-                    if ui.button("Start").clicked() { self.state.tasks[current].start(); }
-                }
-
-                let time_str = self.state.tasks[current].elapsed_time_str();
-                ui.label(time_str);
-
-                if ui.button("Next").clicked() && self.state.tasks.len() > 1 {
-                    let mut indexes: Vec<_> = (0..self.state.tasks.len()).collect();
-                    let pos = indexes.iter().position(|v| *v == self.state.current_task).unwrap();
-                    indexes.remove(pos);
-                    self.state.current_task = *indexes.choose(&mut rand::thread_rng()).unwrap();
-                }
-
-                if ui.button("Tasks").clicked() {
-                    self.state.view = View::TaskList;
-                }
-                ui.end_row();
-
-                // If task is running, request a redraw every half-second
-                // to update the timer.
-                if self.state.tasks[current].start_instant.is_some() {
-                    ctx.request_repaint_after(Duration::new(0, 500));
-                }
-            });
+                        row.col(|ui| {
+                            if self.add_sized_btn(ui, "Tasks").clicked() {
+                                self.state.view = View::TaskList;
+                            }
+                        });
+                    });
+                });
         });
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            let text = &self.state.tasks[current].description;
+
+            let style = ctx.style();
+            let mut layout_job = egui::text::LayoutJob::default();
+            egui::RichText::new(text)
+                .color(style.visuals.text_color())
+                .size(40.0)
+                .append_to(
+                    &mut layout_job,
+                    &style,
+                    egui::FontSelection::Default,
+                    egui::Align::Center,
+                );
+
+            ui.label(layout_job);
+        });
+
+        // If task is running, request a redraw every half-second
+        // to update the timer.
+        if self.state.tasks[current].start_instant.is_some() {
+            ctx.request_repaint_after(Duration::new(0, 500));
+        }
     }
 
     // [ linear clock                                  ]
@@ -156,50 +213,72 @@ impl MainApp {
     // [ pri ] [ duration ] [ task ] [ Edit ] [ Delete ]
     // [                      Add                      ]
     fn update_task_list(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let interact_size = ctx.style().spacing.interact_size;
+
+        egui::TopBottomPanel::bottom("task_list_bottom").show(ctx, |ui| {
+            TableBuilder::new(ui)
+                .column(Column::remainder())
+                .column(Column::exact(100.0))
+                .column(Column::exact(100.0))
+                //.header(30.0, |mut header| {})
+                .body(|mut body| {
+                    body.row(interact_size.y, |mut row| {
+                        row.col(|_ui| { });
+
+                        row.col(|ui| {
+                            if self.add_sized_btn(ui, "Add").clicked() {
+                                self.state.tasks.push(Task::default());
+                            }
+                        });
+
+                        row.col(|ui| {
+                            if self.add_sized_btn(ui, "Done").clicked() {
+                                self.state.view = View::ActiveTask;
+                            }
+                        });
+                    });
+
+                });
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Tasks");
-            egui::Grid::new("active-task").show(ui, |ui| {
-                ui.label("Name");
-                ui.label("Description");
-                ui.label("Elapsed");
-                ui.label("Actions");
-                ui.end_row();
+            TableBuilder::new(ui)
+                .striped(true)
+                .column(Column::remainder())
+                .column(Column::exact(100.0))
+                .column(Column::exact(100.0))
+                .header(interact_size.x, |mut header| {
+                    header.col(|ui| { ui.heading("Task"); });
+                    header.col(|ui| { ui.heading("Elapsed"); });
+                    header.col(|ui| { ui.heading("Actions"); });
+                })
+                .body(|mut body| {
+                    let mut deferred_removal: Option<usize> = None;
+                    for i in 0..self.state.tasks.len() {
+                        body.row(interact_size.y, |mut row| {
+                            let task = &mut self.state.tasks[i];
+                            row.col(|ui| {
+                                ui.text_edit_singleline(&mut task.description);
+                            });
 
-                let mut deferred_removal: Option<usize> = None;
-                for i in 0..self.state.tasks.len() {
-                    let task = &mut self.state.tasks[i];
-                    ui.text_edit_singleline(&mut task.name);
-                    ui.text_edit_singleline(&mut task.description);
+                            row.col(|ui| {
+                                ui.label(task.elapsed_time_str());
+                            });
 
-                    ui.label(task.elapsed_time_str());
-
-                    if ui.button("Delete").clicked() {
-                        deferred_removal = Some(i);
+                            row.col(|ui| {
+                                if self.add_sized_btn(ui, "Delete").clicked() {
+                                    deferred_removal = Some(i);
+                                }
+                            });
+                        });
                     }
-                    ui.end_row();
-                }
-                if let Some(idx) = deferred_removal {
-                    self.state.tasks.remove(idx);
-                    if self.state.current_task > idx {
-                        self.state.current_task -= 1;
+                    if let Some(idx) = deferred_removal {
+                        self.state.tasks.remove(idx);
+                        if self.state.current_task > idx {
+                            self.state.current_task -= 1;
+                        }
                     }
-                }
-
-
-                ui.end_row();
-
-                // Is there some more appropriate way to say "this cell is empty?"
-                ui.label("");
-                ui.label("");
-
-                if ui.button("Add").clicked() {
-                    self.state.tasks.push(Task::default());
-                }
-                if ui.button("Done").clicked() {
-                    self.state.view = View::ActiveTask;
-                }
-                ui.end_row();
-            });
+                });
         });
     }
 }

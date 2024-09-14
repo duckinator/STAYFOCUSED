@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 serde = "1.0.210"
 eframe = { version = "0.28.1", default-features = true, features = ["persistence"] }
+egui_extras = "0.28.1"
 rand = "0.8.5"
