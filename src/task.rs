@@ -1,9 +1,7 @@
 use std::time::{Duration, Instant};
 
-// [ pri ] [ duration ] [ task ] [ Edit ] [ Delete ]
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct Task {
-    //priority: Priority,
     pub elapsed_time: Duration,
     pub description: String,
     #[serde(skip)]
@@ -53,5 +51,55 @@ impl Task {
         let mins = mins % 60;
 
         format!("{:02}:{:02}:{:02}", hours, mins, secs)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_functionality() {
+        let mut task = Task::default();
+        assert_eq!("".to_string(), task.description);
+        task.description.push_str("test task");
+
+        assert_eq!("test task".to_string(), task.description);
+        assert_eq!(Duration::new(0, 0), task.elapsed_time);
+    }
+
+    #[test]
+    fn task_tick() {
+        let mut task = Task::default();
+
+        let five_secs_ago = Instant::now() - Duration::new(5, 0);
+        task.start_instant = Some(five_secs_ago);
+
+        task.tick();
+
+        // Time occured, so look for 5-6 seconds instead of exactly 5 seconds.
+        assert!(Duration::new(5, 0) <= task.elapsed_time);
+        assert!(task.elapsed_time <= Duration::new(6, 0));
+    }
+
+    #[test]
+    fn time_tracking_functionality() {
+        let five_secs = Duration::new(5, 0);
+
+        let mut task = Task::default();
+        assert!(task.elapsed_time == Duration::new(0, 0));
+
+        assert_eq!(false, task.is_tracking_time());
+        task.start();
+
+        assert_eq!(true, task.is_tracking_time());
+
+        // Go 5 seconds into the past.
+        task.start_instant = Some(task.start_instant.unwrap() - five_secs);
+
+        task.stop();
+        assert_eq!(false, task.is_tracking_time());
+
+        assert!(task.elapsed_time >= five_secs);
     }
 }
