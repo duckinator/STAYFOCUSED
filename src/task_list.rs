@@ -41,8 +41,15 @@ impl TaskList {
 
     pub fn choose_random(&mut self) {
         let mut indexes: Vec<_> = (0..self.tasks.len()).collect();
-        let pos = indexes.iter().position(|v| *v == self.current_task_idx).unwrap();
-        indexes.remove(pos);
-        self.set_current(*indexes.choose(&mut rand::thread_rng()).unwrap());
+        if let Some(pos) = indexes.iter().position(|v| *v == self.current_task_idx) {
+            indexes.remove(pos);
+            if let Some(idx) = indexes.choose(&mut rand::thread_rng()) {
+                self.set_current(*idx);
+            } else {
+                eprintln!("TaskList has {} items, choose_random() is useless.", self.tasks.len());
+            }
+        } else {
+            eprintln!("TaskList has {} items, but current_task_idx is {}", self.tasks.len(), self.current_task_idx);
+        }
     }
 }
