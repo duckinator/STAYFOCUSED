@@ -1,10 +1,8 @@
 use eframe::egui;
 use egui_extras::{TableBuilder, Column};
-use rand::seq::SliceRandom;
 use std::time::Duration;
-mod task;
-use task::Task;
 
+mod task; // used by task_list
 mod task_list;
 use task_list::TaskList;
 
@@ -24,7 +22,7 @@ enum View {
 #[derive(Default)]
 struct MainApp {
     view: View,
-    state: TaskList,
+    tasks: TaskList,
 }
 
 impl MainApp {
@@ -60,15 +58,15 @@ impl MainApp {
         let mut slf = Self::default();
 
         if let Some(storage) = cc.storage {
-            if let Some(state) = eframe::get_value(storage, eframe::APP_KEY) {
-                slf.state = state;
+            if let Some(tasks) = eframe::get_value(storage, eframe::APP_KEY) {
+                slf.tasks = tasks;
             }
         }
 
         slf
     }
 
-    fn add_sized_btn(&mut self, ui: &mut egui::Ui, name: &str) -> egui::Response {
+    fn add_sized_btn(ui: &mut egui::Ui, name: &str) -> egui::Response {
         let button_size = [100.0, 30.0];
         ui.add_sized(button_size, egui::Button::new(name))
     }
@@ -78,7 +76,6 @@ impl MainApp {
     // | description                              |
     // [Pause][wrap up indicator] [ Next ] [ List ]
     fn update_active_task(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let current = self.state.current_task;
         let interact_size = ctx.style().spacing.interact_size;
 
         egui::TopBottomPanel::bottom("active_task_bottom").show(ctx, |ui| {
@@ -90,33 +87,31 @@ impl MainApp {
                 .body(|mut body| {
                     body.row(interact_size.y, |mut row| {
                         row.col(|ui| {
-                            if self.state.tasks[current].start_instant.is_some() {
-                                if self.add_sized_btn(ui, "Pause").clicked() {
-                                    self.state.tasks[current].stop();
+                            if self.tasks.current().is_tracking_time() {
+                                if Self::add_sized_btn(ui, "Pause").clicked() {
+                                    self.tasks.current_mut().stop();
                                 }
                             } else {
-                                if self.add_sized_btn(ui, "Start").clicked() {
-                                    self.state.tasks[current].start();
+                                if Self::add_sized_btn(ui, "Start").clicked() {
+                                    self.tasks.current_mut().start();
                                 }
                             }
                         });
 
                         row.col(|ui| {
-                            let time_str = self.state.tasks[current].elapsed_time_str();
+                            self.tasks.current_mut().tick();
+                            let time_str = self.tasks.current().elapsed_time_str();
                             ui.label(time_str);
                         });
 
                         row.col(|ui| {
-                            if self.add_sized_btn(ui, "Next").clicked() && self.state.tasks.len() > 1 {
-                                let mut indexes: Vec<_> = (0..self.state.tasks.len()).collect();
-                                let pos = indexes.iter().position(|v| *v == self.state.current_task).unwrap();
-                                indexes.remove(pos);
-                                self.state.current_task = *indexes.choose(&mut rand::thread_rng()).unwrap();
+                            if Self::add_sized_btn(ui, "Next").clicked() && !self.tasks.is_empty() {
+                                self.tasks.choose_random();
                             }
                         });
 
                         row.col(|ui| {
-                            if self.add_sized_btn(ui, "Tasks").clicked() {
+                            if Self::add_sized_btn(ui, "Tasks").clicked() {
                                 self.view = View::TaskList;
                             }
                         });
@@ -125,7 +120,7 @@ impl MainApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let text = &self.state.tasks[current].description;
+            let text = &self.tasks.current().description;
 
             let style = ctx.style();
             let mut layout_job = egui::text::LayoutJob::default();
@@ -144,7 +139,7 @@ impl MainApp {
 
         // If task is running, request a redraw every half-second
         // to update the timer.
-        if self.state.tasks[current].start_instant.is_some() {
+        if self.tasks.current().is_tracking_time() {
             ctx.request_repaint_after(Duration::new(0, 500));
         }
     }
@@ -167,13 +162,13 @@ impl MainApp {
                         row.col(|_ui| { });
 
                         row.col(|ui| {
-                            if self.add_sized_btn(ui, "Add").clicked() {
-                                self.state.tasks.push(Task::default());
+                            if Self::add_sized_btn(ui, "Add").clicked() {
+                                self.tasks.push_default();
                             }
                         });
 
                         row.col(|ui| {
-                            if self.add_sized_btn(ui, "Done").clicked() {
+                            if Self::add_sized_btn(ui, "Done").clicked() {
                                 self.view = View::ActiveTask;
                             }
                         });
@@ -195,9 +190,8 @@ impl MainApp {
                 })
                 .body(|mut body| {
                     let mut deferred_removal: Option<usize> = None;
-                    for i in 0..self.state.tasks.len() {
+                    for (i, task) in self.tasks.iter_mut().enumerate() {
                         body.row(interact_size.y, |mut row| {
-                            let task = &mut self.state.tasks[i];
                             row.col(|ui| {
                                 ui.text_edit_singleline(&mut task.description);
                             });
@@ -207,17 +201,14 @@ impl MainApp {
                             });
 
                             row.col(|ui| {
-                                if self.add_sized_btn(ui, "Delete").clicked() {
+                                if Self::add_sized_btn(ui, "Delete").clicked() {
                                     deferred_removal = Some(i);
                                 }
                             });
                         });
                     }
                     if let Some(idx) = deferred_removal {
-                        self.state.tasks.remove(idx);
-                        if self.state.current_task > idx {
-                            self.state.current_task -= 1;
-                        }
+                        self.tasks.remove(idx)
                     }
                 });
         });
@@ -226,7 +217,7 @@ impl MainApp {
 
 impl eframe::App for MainApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        if self.state.tasks.is_empty() {
+        if self.tasks.is_empty() {
             self.view = View::TaskList;
         }
 
@@ -237,6 +228,6 @@ impl eframe::App for MainApp {
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, &self.state);
+        eframe::set_value(storage, eframe::APP_KEY, &self.tasks);
     }
 }

@@ -24,6 +24,10 @@ impl Task {
         }
     }
 
+    pub fn is_tracking_time(&self) -> bool {
+        self.start_instant.is_some()
+    }
+
     pub fn tick(&mut self) {
         if self.start_instant.is_none() {
             return;
