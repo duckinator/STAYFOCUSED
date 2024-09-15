@@ -29,21 +29,19 @@ impl Task {
     }
 
     pub fn tick(&mut self) {
-        if self.start_instant.is_none() {
-            return;
+        if let Some(start_instant) = self.start_instant {
+            let now = Instant::now();
+            let difference = now.duration_since(start_instant);
+
+            // Mostly just so it's not updating every fucking frame.
+            if difference.as_secs() < 1 {
+                return;
+            }
+
+            self.elapsed_time += difference;
+
+            self.start_instant = Some(now);
         }
-
-        let now = Instant::now();
-        let difference = now.duration_since(self.start_instant.unwrap());
-
-        // Mostly just so it's not updating every fucking frame.
-        if difference.as_secs() < 1 {
-            return;
-        }
-
-        self.elapsed_time += difference;
-
-        self.start_instant = Some(now);
     }
 
     pub fn elapsed_time_str(&self) -> String {
