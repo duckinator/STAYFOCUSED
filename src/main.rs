@@ -1,6 +1,5 @@
 use eframe::egui;
 use egui_extras::{TableBuilder, Column};
-use std::time::Duration;
 
 mod task; // used by task_list
 mod task_list;
@@ -137,10 +136,9 @@ impl MainApp {
             ui.label(layout_job);
         });
 
-        // If task is running, request a redraw every half-second
-        // to update the timer.
+        // If task is running, request a redraw to update the timer.
         if self.tasks.current().is_tracking_time() {
-            ctx.request_repaint_after(Duration::new(0, 500));
+            ctx.request_repaint_after_secs(0.2);
         }
     }
 
