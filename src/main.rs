@@ -72,7 +72,7 @@ impl MainApp {
 
     // [ linear clock                             ]
     // [ current task                             ]
-    // | description                              |
+    // | notes                                    |
     // [Pause][wrap up indicator] [ Next ] [ List ]
     fn update_active_task(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let interact_size = ctx.style().spacing.interact_size;
@@ -119,21 +119,25 @@ impl MainApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let text = &self.tasks.current().description;
+            ui.vertical(|ui| {
+                let text = &self.tasks.current().description;
 
-            let style = ctx.style();
-            let mut layout_job = egui::text::LayoutJob::default();
-            egui::RichText::new(text)
-                .color(style.visuals.text_color())
-                .size(40.0)
-                .append_to(
-                    &mut layout_job,
-                    &style,
-                    egui::FontSelection::Default,
-                    egui::Align::Center,
-                );
+                let style = ctx.style();
+                let mut layout_job = egui::text::LayoutJob::default();
+                egui::RichText::new(text)
+                    .color(style.visuals.text_color())
+                    .size(40.0)
+                    .append_to(
+                        &mut layout_job,
+                        &style,
+                        egui::FontSelection::Default,
+                        egui::Align::Center,
+                    );
 
-            ui.label(layout_job);
+                ui.label(layout_job);
+
+                ui.text_edit_multiline(&mut self.tasks.current_mut().note);
+            });
         });
 
         // If task is running, request a redraw to update the timer.

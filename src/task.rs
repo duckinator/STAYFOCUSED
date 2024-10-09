@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 pub struct Task {
     pub elapsed_time: Duration,
     pub description: String,
+    pub note: String,
     #[serde(skip)]
     pub start_instant: Option<Instant>,
 }
