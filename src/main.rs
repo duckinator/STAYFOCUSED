@@ -119,7 +119,7 @@ impl MainApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical(|ui| {
+            ui.vertical_centered_justified(|ui| {
                 let text = &self.tasks.current().description;
 
                 let style = ctx.style();
@@ -136,7 +136,9 @@ impl MainApp {
 
                 ui.label(layout_job);
 
-                ui.text_edit_multiline(&mut self.tasks.current_mut().note);
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.text_edit_multiline(&mut self.tasks.current_mut().note);
+                });
             });
         });
 
