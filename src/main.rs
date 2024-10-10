@@ -22,6 +22,7 @@ enum View {
 struct MainApp {
     view: View,
     tasks: TaskList,
+    needs_save: bool,
 }
 
 impl MainApp {
@@ -137,7 +138,9 @@ impl MainApp {
                 ui.label(layout_job);
 
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.text_edit_multiline(&mut self.tasks.current_mut().note);
+                    if ui.text_edit_multiline(&mut self.tasks.current_mut().note).changed() {
+                        self.needs_save = true;
+                    }
                 });
             });
         });
@@ -231,7 +234,18 @@ impl eframe::App for MainApp {
         }
     }
 
+    // This function and `self.needs_save` are part of a workaround for
+    // https://github.com/emilk/egui/issues/5243
+    fn auto_save_interval(&self) -> std::time::Duration {
+        if self.needs_save {
+            std::time::Duration::from_millis(0)
+        } else {
+            std::time::Duration::from_secs(30)
+        }
+    }
+
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, &self.tasks);
+        self.needs_save = false;
     }
 }
