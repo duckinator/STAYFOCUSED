@@ -1,4 +1,4 @@
-name: auto-cargo-release
+name: Cargo Release
 permissions:
   "contents": "write"
 
