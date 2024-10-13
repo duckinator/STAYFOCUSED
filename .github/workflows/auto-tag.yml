@@ -1,0 +1,37 @@
+name: Auto-tag
+permissions:
+  "contents": "write"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Cargo.toml'
+
+jobs:
+  tag:
+    runs-on: "ubuntu-20.04"
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Check if version in Cargo.toml has changed
+        id: project
+        run: |
+          git diff-tree --no-commit-id --name-only -r -G'^version ?= ?"*"' --quiet --exit-code "${{ github.ref }}" Cargo.toml
+          echo "VERSION_CHANGED=$?" >> $GITHUB_ENV
+          echo "VERSION=$(grep -E '^version ?= ?".*"$' Cargo.toml | cut -d '"' -f 2)" >> $GITHUB_ENV
+      - name: Create tag
+        if: project.VERSION_CHANGED == "1" && project.NEW_VERSION != ""
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ project.NEW_VERSION }}',
+              sha: context.sha
+            })
