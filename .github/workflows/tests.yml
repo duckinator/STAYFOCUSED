@@ -1,0 +1,17 @@
+name: Tests
+
+on: push
+
+jobs:
+  tests:
+    runs-on: "ubuntu-20.04"
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Rust
+        run: rustup update
+      - name: Run tests
+        run: cargo test
