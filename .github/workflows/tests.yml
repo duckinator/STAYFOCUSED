@@ -31,7 +31,9 @@ jobs:
         id: project
         run: |
           ! git diff-tree --no-commit-id --name-only -r -G'^version ?= ?"*"' --quiet --exit-code HEAD Cargo.toml
-          echo "VERSION_CHANGED=$?" >> $GITHUB_ENV
+          VERSION_CHANGED=$?
+          echo "VERSION_CHANGED=${VERSION_CHANGED}" >> $GITHUB_ENV
+          echo "VERSION_CHANGED=${VERSION_CHANGED}"
       - name: Install Rust
         if: steps.project.VERSION_CHANGED == '1'
         run: rustup update
