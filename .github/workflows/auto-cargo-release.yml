@@ -29,5 +29,5 @@ jobs:
           git diff-tree --no-commit-id --name-only -r -G'^version ?= ?"*"' --quiet --exit-code "${{ github.ref }}" Cargo.toml
           echo "VERSION_CHANGED=$?" >> $GITHUB_ENV
       - name: Run cargo-release
-        if: steps.project.VERSION_CHANGED == "1"
+        if: steps.project.VERSION_CHANGED == '1'
         run: cargo release --execute
