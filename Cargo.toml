@@ -1,6 +1,6 @@
 [package]
 name = "stayfocused"
-version = "0.3.1"
+version = "0.3.1" # this comment is a kludge to avoid bumping the version every time the auto-release functionality fails.
 description = "Software To Avoid [Y] Fixating On Completely Unproductive Shit Every Day"
 
 repository = "https://github.com/duckinator/STAYFOCUSED"
