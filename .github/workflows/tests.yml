@@ -30,10 +30,9 @@ jobs:
       - name: Check if version in Cargo.toml has changed
         id: project
         run: |
-          git diff-tree -r -G'^version ?= ?"*"' --exit-code HEAD Cargo.toml
-          VERSION_CHANGED=$?
-          echo "VERSION_CHANGED=${VERSION_CHANGED}" >> $GITHUB_ENV
+          git diff-tree -r -G'^version ?= ?"*"' --exit-code HEAD Cargo.toml && VERSION_CHANGED=0 || VERSION_CHANGED=1
           echo "VERSION_CHANGED=${VERSION_CHANGED}"
+          echo "VERSION_CHANGED=${VERSION_CHANGED}" >> "$GITHUB_ENV"
       - name: Install Rust
         if: steps.project.VERSION_CHANGED == '1'
         run: rustup update
