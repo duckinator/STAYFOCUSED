@@ -1,6 +1,6 @@
 [package]
 name = "stayfocused"
-version = "0.3.6"
+version = "0.3.7"
 description = "Software To Avoid [Y] Fixating On Completely Unproductive Shit Every Day"
 
 repository = "https://github.com/duckinator/STAYFOCUSED"
