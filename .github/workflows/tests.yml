@@ -40,4 +40,4 @@ jobs:
         run: cargo install cargo-release
       - name: Run cargo-release
         if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: cargo release --execute
+        run: cargo release --no-confirm --execute
