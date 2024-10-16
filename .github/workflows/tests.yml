@@ -1,0 +1,55 @@
+name: Tests
+permissions:
+  "contents": "write"
+
+on: push
+
+jobs:
+  run-tests:
+    runs-on: "ubuntu-20.04"
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Rust
+        run: rustup update
+      - name: Run tests
+        run: cargo test
+
+  tag-if-needed:
+    runs-on: "ubuntu-20.04"
+    needs: run-tests
+    # Only run if tests passed and the branch is main.
+    if: ${{ github.ref == 'refs/heads/main' }}
+    environment: cargo-release
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check if version in Cargo.toml has changed
+        id: project
+        run: |
+          git diff-tree -r -G'^version ?= ?"*"' --exit-code HEAD Cargo.toml || : "${VERSION_CHANGED:=1}" && : "${VERSION_CHANGED:=0}"
+          echo "VERSION_CHANGED=${VERSION_CHANGED}" >> "$GITHUB_OUTPUT"
+      - name: Install jq
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+      - name: Get version from Cargo.toml
+        id: version
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: |
+          VERSION=$(cargo metadata --format-version 1 | jq --raw-output '.packages[] | select(.name == "stayfocused").version')
+          echo "TAG=v${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Create git tag
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: git tag ${{ steps.version.output.TAG }}
+      - name: Push git tag
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: git push origin ${{ steps.version.output.TAG }}
