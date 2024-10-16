@@ -1,0 +1,45 @@
+name: Tests
+
+on: push
+
+jobs:
+  run-tests:
+    runs-on: "ubuntu-20.04"
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Rust
+        run: rustup update
+      - name: Run tests
+        run: cargo test
+
+  release-if-needed:
+    runs-on: "ubuntu-20.04"
+    needs: run-tests
+    # Only run if tests passed and the branch is main.
+    if: ${{ github.ref == 'refs/heads/main' }}
+    environment: cargo-release
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check if version in Cargo.toml has changed
+        id: project
+        run: |
+          git diff-tree -r -G'^version ?= ?"*"' --exit-code HEAD Cargo.toml || : "${VERSION_CHANGED:=1}" && : "${VERSION_CHANGED:=0}"
+          echo "VERSION_CHANGED=${VERSION_CHANGED}" >> "$GITHUB_OUTPUT"
+      - name: Install Rust
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: rustup update
+      - name: Install cargo-release
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: cargo install cargo-release
+      - name: Run cargo-release
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: cargo release --no-confirm --execute
