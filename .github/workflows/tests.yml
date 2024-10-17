@@ -18,7 +18,7 @@ jobs:
       - name: Run tests
         run: cargo test
 
-  tag-if-needed:
+  release-if-needed:
     runs-on: "ubuntu-20.04"
     needs: run-tests
     # Only run if tests passed and the branch is main.
@@ -40,6 +40,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
+      - name: Update Rust
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: rustup update
       - name: Get version from Cargo.toml
         id: version
         if: steps.project.outputs.VERSION_CHANGED == '1'
@@ -57,3 +60,12 @@ jobs:
                 ref: 'refs/tags/${{ steps.version.outputs.TAG }}',
                 sha: context.sha
             })
+      - name: Install cargo-release
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: cargo install cargo-release
+      - name: Run cargo test
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: cargo test
+      - name: Run cargo-release
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: cargo release --no-confirm --no-tag --execute
