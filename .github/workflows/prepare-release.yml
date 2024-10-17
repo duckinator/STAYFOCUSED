@@ -8,7 +8,6 @@ on: push
 jobs:
   release-if-needed:
     runs-on: "ubuntu-20.04"
-    needs: tests
     # Only run if tests passed and the branch is main.
     if: ${{ github.ref == 'refs/heads/main' }}
     env:
