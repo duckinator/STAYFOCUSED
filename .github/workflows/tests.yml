@@ -46,9 +46,14 @@ jobs:
         run: |
           VERSION=$(cargo metadata --format-version 1 | jq --raw-output '.packages[] | select(.name == "stayfocused").version')
           echo "TAG=v${VERSION}" >> "$GITHUB_OUTPUT"
-      - name: Create git tag
+      - name: Create Tag
         if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: git tag ${{ steps.version.outputs.TAG }}
-      - name: Push git tag
-        if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: git push origin ${{ steps.version.outputs.TAG }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ steps.version.outputs.TAG }}',
+                sha: context.sha
+            })
