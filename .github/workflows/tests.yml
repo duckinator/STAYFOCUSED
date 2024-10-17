@@ -40,9 +40,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
-      - name: Update Rust
-        if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: rustup update
       - name: Get version from Cargo.toml
         id: version
         if: steps.project.outputs.VERSION_CHANGED == '1'
@@ -60,12 +57,6 @@ jobs:
                 ref: 'refs/tags/${{ steps.version.outputs.TAG }}',
                 sha: context.sha
             })
-      - name: Install cargo-release
+      - name: Run cargo publish
         if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: cargo install cargo-release
-      - name: Run cargo test
-        if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: cargo test
-      - name: Run cargo-release
-        if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: cargo release --no-confirm --no-tag --execute
+        run: cargo publish
