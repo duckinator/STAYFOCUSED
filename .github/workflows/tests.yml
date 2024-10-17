@@ -57,3 +57,14 @@ jobs:
                 ref: 'refs/tags/${{ steps.version.outputs.TAG }}',
                 sha: context.sha
             })
+      - name: Trigger cargo-dist release workflow
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/${{ steps.versions.outputs.TAG }}',
+                workflow_id: 'release',
+            })
