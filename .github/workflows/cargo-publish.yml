@@ -1,6 +1,15 @@
 name: Publish to crates.io
 
-on: workflow_call
+on:
+  # Defining workflow_call means that this workflow can be called from
+  # your main workflow job
+  workflow_call:
+    # cargo-dist exposes the plan from the plan step, as a JSON string,
+    # to your job if it needs it
+    inputs:
+      plan:
+        required: true
+        type: string
 
 jobs:
   cargo-publish:
