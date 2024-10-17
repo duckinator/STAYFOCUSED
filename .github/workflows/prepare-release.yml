@@ -1,4 +1,4 @@
-name: Tests
+name: Prepare Release
 permissions:
   "contents": "write"
   "actions": "write"
@@ -6,22 +6,9 @@ permissions:
 on: push
 
 jobs:
-  run-tests:
-    runs-on: "ubuntu-20.04"
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Install Rust
-        run: rustup update
-      - name: Run tests
-        run: cargo test
-
   release-if-needed:
     runs-on: "ubuntu-20.04"
-    needs: run-tests
+    needs: tests
     # Only run if tests passed and the branch is main.
     if: ${{ github.ref == 'refs/heads/main' }}
     env:
@@ -36,6 +23,9 @@ jobs:
         run: |
           git diff-tree -r -G'^version ?= ?"*"' --exit-code HEAD Cargo.toml || : "${VERSION_CHANGED:=1}" && : "${VERSION_CHANGED:=0}"
           echo "VERSION_CHANGED=${VERSION_CHANGED}" >> "$GITHUB_OUTPUT"
+      - name: Run tests
+        if: steps.project.outputs.VERSION_CHANGED == '1'
+        run: cargo test
       - name: Install jq
         if: steps.project.outputs.VERSION_CHANGED == '1'
         run: |
