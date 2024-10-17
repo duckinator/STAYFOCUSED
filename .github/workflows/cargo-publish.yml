@@ -1,0 +1,13 @@
+name: cargo publish
+
+on: workflow_call
+
+jobs:
+  cargo-publish:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run cargo publish
+        run: cargo publish

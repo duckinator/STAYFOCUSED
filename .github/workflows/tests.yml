@@ -57,6 +57,3 @@ jobs:
                 ref: 'refs/tags/${{ steps.version.outputs.TAG }}',
                 sha: context.sha
             })
-      - name: Run cargo publish
-        if: steps.project.outputs.VERSION_CHANGED == '1'
-        run: cargo publish
