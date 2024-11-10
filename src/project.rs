@@ -97,7 +97,7 @@ mod tests {
         };
 
         // there should be no current task yet.
-        assert_eq!(project.current_task(), None);
+        assert!(project.current_task().is_err());
 
         project.push_default_task();
         let task1 = project.tasks.last_mut().unwrap();
