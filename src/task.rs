@@ -1,12 +1,14 @@
 use std::time::{Duration, Instant};
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[derive(Default, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Task {
     pub elapsed_time: Duration,
+    pub name: String,
     pub description: String,
     pub note: String,
+    pub is_done: bool,
     #[serde(skip)]
-    pub start_instant: Option<Instant>,
+    start_instant: Option<Instant>,
 }
 
 impl Task {
