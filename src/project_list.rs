@@ -1,4 +1,5 @@
 use crate::project::Project;
+use crate::random::random_different_index;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Deserialize, Serialize)]
@@ -32,6 +33,10 @@ impl ProjectList {
         if self.idx > idx_to_remove {
             self.idx -= 1;
         }
+    }
+
+    pub fn choose_random(&mut self) {
+        self.idx = random_different_index(&mut self.projects, self.idx);
     }
 
     pub fn set_name(&mut self, idx: usize, name: String) -> Result<(), &str> {
