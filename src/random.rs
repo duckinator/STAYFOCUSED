@@ -1,6 +1,6 @@
 use rand::seq::SliceRandom;
 
-pub fn random_different_index<T>(items: &mut Vec<T>, current_idx: usize) -> usize{
+pub fn random_different_index<T>(items: &mut Vec<T>, current_idx: usize) -> usize {
     let mut indexes: Vec<_> = (0..items.len()).collect();
     if let Some(pos) = indexes.iter().position(|v| *v == current_idx) {
         indexes.remove(pos);

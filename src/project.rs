@@ -1,9 +1,8 @@
+use crate::random::random_different_index;
 use crate::task::Task;
 use crate::time_commitment::TimeCommitment;
-use crate::random::random_different_index;
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
-
+use std::time::Duration;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Project {
@@ -31,11 +30,11 @@ impl Project {
     }
 
     pub fn current_task(&self) -> Result<&Task, &str> {
-        self.tasks.get(self.idx).ok_or("current task idx is invalid")
+        self.tasks.get(self.idx).ok_or("no current task")
     }
 
     pub fn current_task_mut(&mut self) -> Result<&mut Task, &str> {
-        self.tasks.get_mut(self.idx).ok_or("current task idx is invalid")
+        self.tasks.get_mut(self.idx).ok_or("no current task")
     }
 
     pub fn set_current_task(&mut self, idx: usize) {

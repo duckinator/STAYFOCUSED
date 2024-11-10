@@ -44,6 +44,12 @@ struct App {
     view: View,
 }
 
+impl App {
+    fn set_view(&mut self, view: View) {
+        self.view = view;
+    }
+}
+
 fn update_inner(app: &mut App, message: Message) -> Result<(), Box<dyn std::error::Error>> {
     match message {
         Message::ProjectAdd => app.projects.push_default(),
@@ -56,7 +62,7 @@ fn update_inner(app: &mut App, message: Message) -> Result<(), Box<dyn std::erro
         Message::TaskSetName(idx, name) => app.projects.current_mut()?.set_name(idx, name)?,
         Message::TaskSetDesc(idx, desc) => app.projects.current_mut()?.set_desc(idx, desc)?,
         Message::TaskSetNote(idx, note) => app.projects.current_mut()?.set_note(idx, note)?,
-        Message::SwitchView(view) => { app.view = view },
+        Message::SwitchView(view) => app.set_view(view),
     }
 
     Ok(())
@@ -64,7 +70,7 @@ fn update_inner(app: &mut App, message: Message) -> Result<(), Box<dyn std::erro
 
 fn update(app: &mut App, message: Message) {
     match update_inner(app, message) {
-        Ok(()) => { },
+        Ok(()) => {},
         Err(msg) => eprintln!("{}", msg),
     }
 }

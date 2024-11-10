@@ -14,11 +14,11 @@ impl ProjectList {
     }
 
     pub fn current(&self) -> Result<&Project, &str> {
-        self.projects.get(self.idx).ok_or("current project idx is invalid")
+        self.projects.get(self.idx).ok_or("no current project")
     }
 
     pub fn current_mut(&mut self) -> Result<&mut Project, &str> {
-        self.projects.get_mut(self.idx).ok_or("current project idx is invalid")
+        self.projects.get_mut(self.idx).ok_or("no current project")
     }
 
     pub fn push_default(&mut self) {
