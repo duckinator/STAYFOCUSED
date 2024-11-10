@@ -12,34 +12,48 @@ pub struct Project {
     pub note: String,
     pub time_commitment: TimeCommitment,
     tasks: Vec<Task>,
-    current_task_idx: usize,
+    idx: usize,
 }
 
 impl Project {
-    pub fn start_current_task(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.current_task_mut().ok_or("Project has no tasks")?.start();
+    pub fn iter(&self) -> std::slice::Iter<'_, Task> {
+        self.tasks.iter()
+    }
+
+    pub fn start_current_task(&mut self) -> Result<(), &str> {
+        self.current_task_mut()?.start();
         Ok(())
     }
 
-    pub fn stop_current_task(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.current_task_mut().ok_or("Project has no tasks")?.stop();
+    pub fn stop_current_task(&mut self) -> Result<(), &str> {
+        self.current_task_mut()?.stop();
         Ok(())
     }
 
-    pub fn current_task(&self) -> Option<&Task> {
-        self.tasks.get(self.current_task_idx)
+    pub fn current_task(&self) -> Result<&Task, &str> {
+        self.tasks.get(self.idx).ok_or("current task idx is invalid")
     }
 
-    pub fn current_task_mut(&mut self) -> Option<&mut Task> {
-        self.tasks.get_mut(self.current_task_idx)
+    pub fn current_task_mut(&mut self) -> Result<&mut Task, &str> {
+        self.tasks.get_mut(self.idx).ok_or("current task idx is invalid")
     }
 
     pub fn set_current_task(&mut self, idx: usize) {
-        self.current_task_idx = idx;
+        self.idx = idx;
     }
 
-    pub fn add_default_task(&mut self) {
+    pub fn push_default_task(&mut self) {
         self.tasks.push(Task::default());
+    }
+
+    pub fn remove_task(&mut self, idx_to_remove: usize) {
+        self.tasks.remove(idx_to_remove);
+
+        // The indexes for all values above idx_to_remove get shifted down one,
+        // so if self.idx > idx_to_remove, we need to account for that.
+        if self.idx > idx_to_remove {
+            self.idx -= 1;
+        }
     }
 
     pub fn has_time_commitment(&self) -> bool {
@@ -51,7 +65,22 @@ impl Project {
     }
 
     pub fn choose_random_task(&mut self) {
-        self.current_task_idx = random_different_index(&mut self.tasks, self.current_task_idx);
+        self.idx = random_different_index(&mut self.tasks, self.idx);
+    }
+
+    pub fn set_name(&mut self, idx: usize, name: String) -> Result<(), &str> {
+        self.tasks.get_mut(idx).ok_or("invalid index")?.name = name;
+        Ok(())
+    }
+
+    pub fn set_desc(&mut self, idx: usize, desc: String) -> Result<(), &str> {
+        self.tasks.get_mut(idx).ok_or("invalid index")?.description = desc;
+        Ok(())
+    }
+
+    pub fn set_note(&mut self, idx: usize, note: String) -> Result<(), &str> {
+        self.tasks.get_mut(idx).ok_or("invalid index")?.note = note;
+        Ok(())
     }
 }
 
@@ -70,7 +99,7 @@ mod tests {
         // there should be no current task yet.
         assert_eq!(project.current_task(), None);
 
-        project.add_default_task();
+        project.push_default_task();
         let task1 = project.tasks.last_mut().unwrap();
         task1.name = "task1 name".to_string();
         task1.description = "task1 description".to_string();
@@ -78,7 +107,7 @@ mod tests {
         // it should default to the first task.
         assert_eq!(project.current_task().unwrap().name, "task1 name");
 
-        project.add_default_task();
+        project.push_default_task();
         let task2 = project.tasks.last_mut().unwrap();
         task2.name = "task2 name".to_string();
         task2.description = "task2 description".to_string();
