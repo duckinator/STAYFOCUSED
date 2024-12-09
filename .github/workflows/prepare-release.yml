@@ -46,7 +46,8 @@ jobs:
                 repo: context.repo.repo,
                 tag: '${{ steps.version.outputs.TAG }}',
                 message: 'Version ${{ steps.version.outputs.TAG }}',
-                object: context.sha
+                object: context.sha,
+                type: 'commit'
             })
       - name: Trigger cargo-dist release workflow
         if: steps.project.outputs.VERSION_CHANGED == '1'
