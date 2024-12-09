@@ -44,7 +44,7 @@ jobs:
             github.rest.git.createRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag: steps.version.outputs.TAG,
+                tag: '${{ steps.version.outputs.TAG }}',
                 message: 'Version ${{ steps.version.outputs.TAG }}',
                 object: context.sha
             })
